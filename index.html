@@ -1,0 +1,164 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Evil Hangman</title>
+    <script src="underscore.js" language="javascript" type="text/javascript"></script>
+<style>
+#guessedLetter, #guessButton, #newGameButton {
+    font-size: 20pt;
+}
+#answer {
+    font-size: 40pt;
+    letter-spacing: 3px
+}
+body{
+    text-align: center;
+    width: 540px;
+    margin: 0 auto;
+}
+</style>
+</head>
+
+<body>
+    <h1>Evil Hangman</h1>
+    Evil hangman is what looks to be an ordinary game of hangman, but even if you cheat by knowing all of the possible words that fit it can still be a challenge.  <br>Peek under the hood at the source to see why it is so evil an the project page on <a href="https://github.com/icefox/evilhangman">GitHub</a>.
+    <div id='answer'>_____</div>
+    <span id='status'>15 guesses left.</span>
+    <span id='guessedLetters'></span>
+    <br>
+    <form>
+        <input id="guessedLetter" type="text" size=2 onKeyPress="guessKeyPress(event)">
+        <input id="guessButton" type="button" value="Guess Letter" onclick="guessLetter()">
+
+        <br><br>
+        <hr>
+        Number of letters:<select id="wordLength"></select>
+        Guesses: <input id="guesses" type="text" size=3 value="15">
+        <input id="newGameButton" type="button" value="New Game" onclick="newGame()"><br>
+        <hr>
+        <input type="checkbox" checked="true" onclick="cheatBox()">Show all possible solutions:<br>
+        <textarea id="cheat" cols=70 rows=12></textarea>
+    </form>
+</body>
+
+<script>
+"use strict";
+function guessKeyPress(event)
+{
+    if (event && event.keyCode === 13)
+        guessLetter()
+}
+
+function cheatBox()
+{
+    var cheat = document.getElementById('cheat');
+    cheat.style.visibility = cheat.style.visibility === 'hidden' ? 'visible' : 'hidden';
+}
+
+function initGame()
+{
+    if (dictionary.length !== 0) {
+        newGame();
+        return;
+    }
+
+    var xmlhttp = new XMLHttpRequest();
+    xmlhttp.onreadystatechange = function() {
+        if (xmlhttp.readyState === 4 && xmlhttp.status === 200) {
+            loadDictionary(xmlhttp.responseText);
+        }
+    };
+    xmlhttp.open('GET', 'dictionary.txt', true);
+    xmlhttp.send();
+}
+
+function loadDictionary(text)
+{
+    dictionary = text.split('\n');
+    var wordLength = document.getElementById('wordLength');
+    _.chain(_.range(2, 20))
+        .filter(function(i) { return _.some(dictionary, function(w){return w.length == i})})
+        .map(function(i) {
+            var option = document.createElement('option');
+            option.text = i;
+            option.value = i;
+            option.selected = i == 5;
+            return option;
+        })
+        .each(function(option) { wordLength.appendChild(option) })
+    _.defer(newGame);
+}
+
+var dictionary = [];
+
+var wordLength = 0;
+var guessesLeft = 0;
+var words = [];
+var guesses = [];
+var answer = '';
+
+function newGame()
+{
+    wordLength = parseInt(document.getElementById('wordLength').value, 10);
+    guessesLeft = document.getElementById('guesses').value;
+    words = _.filter(dictionary, function(line){ return wordLength === line.length});
+    guesses = [];
+    answer = _.range(0, wordLength).map(function(n) { return '_'}).join('');
+    updateScreen();
+}
+
+function updateScreen()
+{
+    document.getElementById('answer').innerHTML = answer;
+
+    if (guesses.length > 0) {
+	guesses.sort();
+	var guessedLetters = document.getElementById('guessedLetters');
+        guessedLetters.innerHTML = 'Letters guessed:' + guesses.join(',');
+    }
+
+    document.getElementById('cheat').innerHTML = words.join(',');
+
+    var status = document.getElementById('status');
+    if (guessesLeft <= 0) {
+        var word = words[_.random(1, words.length) - 1]
+        status.innerHTML = 'Sorry you lost!  The word was ' + word + '.  New Game?';
+	document.getElementById('newGameButton').focus();
+    } else if (answer.indexOf('_') == -1) {
+        status.innerHTML = 'Congratulations, you won!  You had only ' + guessesLeft + ' guesses remaining, can you do better?';
+	document.getElementById('newGameButton').focus();
+    } else {
+        status.innerHTML = guessesLeft + ' guesses left.';
+	document.getElementById('guessedLetter').focus();
+    }
+}
+    
+function guessLetter()
+{
+    var nextGuessElement = document.getElementById('guessedLetter');
+    var nextGuess = nextGuessElement.value.toLowerCase();
+    nextGuessElement.value = '';
+    if (nextGuess.length !== 1 || _.contains(guesses, nextGuess))
+        return;
+
+    guesses.push(nextGuess);
+
+    var groups = _.groupBy(words, function(w){
+	return _.map(w, function(l){return _.contains(guesses, l) ? l : '_'})
+                .join('')
+    });
+
+    var bestGroup = _.max(_.keys(groups), function(k){return groups[k].length});
+
+    if (answer !== bestGroup)
+        answer = bestGroup
+    else
+        --guessesLeft;
+    words = groups[answer];
+
+    updateScreen();
+}
+
+_.defer(initGame);
+</script>
+</html>

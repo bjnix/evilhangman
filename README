@@ -1,0 +1,5 @@
+Evil hangman is a simple, but amusing version of hangman that is not the simplest to beat.
+
+You can play it right now at http://icefox.github.io/evilhangman
+
+dictionary.txt comes from the dictionaries-common debian package and is under the GPL2 license
