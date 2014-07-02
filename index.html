@@ -111,10 +111,12 @@ function updateScreen()
 {
     document.getElementById('answer').innerHTML = answer;
 
+    var guessedLetters = document.getElementById('guessedLetters');
     if (guesses.length > 0) {
 	guesses.sort();
-	var guessedLetters = document.getElementById('guessedLetters');
         guessedLetters.innerHTML = 'Letters guessed:' + guesses.join(',');
+    } else {
+        guessedLetters.innerHTML = '';
     }
 
     document.getElementById('cheat').innerHTML = words.join(',');
